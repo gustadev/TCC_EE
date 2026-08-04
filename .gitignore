@@ -1,4 +1,5 @@
-Datasets/
+/Datasets
 __pycache__
+classes/dataset/__pycache__
 .venv
 *.zip
