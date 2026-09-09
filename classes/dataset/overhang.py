@@ -18,13 +18,17 @@ class Overhang(df.DataFile):
         self.path[3] = "/" + lvl
         return self
 
-    def tipe(self, tipe : OH_TIPE):
+    def type(self, tipe : OH_TIPE):
         self.path[2] = "/" + tipe
         return self
 
     def list_files(self):
         pasta = Path(self.get_path())
-        return sorted(arquivo.name for arquivo in pasta.iterdir() if arquivo.is_file())
+        return sorted(
+            arquivo.name
+            for arquivo in pasta.iterdir()
+            if arquivo.is_file() and arquivo.suffix.lower() == ".csv"
+        )
 
     def set_file(self,file):
         if Path(self.get_path() + "/" + file):

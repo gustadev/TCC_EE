@@ -14,11 +14,11 @@ if __name__ == "__main__":
 
     # Dados MaFaulDa
     h_misali    =   Hmisali().set_lvl('0.5mm')
-    v_misali    =   Vmisali().set_lvl('0.51mm')
+    v_misali    =   Vmisali().set_lvl('1.90mm')
     imbalan     =   Imbalance().set_lvl('6g')
     normal      =   Normal()
-    overhang    =   Overhang().set_lvl('0g')
-    underhang   =   Underhang().set_lvl('0g')
+    overhang    =   Overhang().set_lvl('6g')
+    underhang   =   Underhang().set_lvl('6g')
     
 
 
@@ -37,89 +37,115 @@ if __name__ == "__main__":
     }
 
     v_misali_stats = {
-            "mean" : [],
-            "variance" : [],
-            "kurtosis" : [],
-            "skewness" : []
-        }
+        "mean" : [],
+        "variance" : [],
+        "kurtosis" : [],
+        "skewness" : []
+    }
+
+    imbalance_stats = {
+        "mean" : [],
+        "variance" : [],
+        "kurtosis" : [],
+        "skewness" : []
+    }
 
     
     for f in normal.list_files():
-        data = normal.set_file(f).read_acel(1,"all")
+        data = normal.set_file(f).read_acel(1,"all")#[0:5000]
         normal_stats["mean"].append(data.mean(axis=0))
         normal_stats["variance"].append(np.var(data,axis=0))
         normal_stats["kurtosis"].append(stats.kurtosis(data,axis=0))
         normal_stats["skewness"].append(stats.skew(data,axis=0))
 
     for f in h_misali.list_files():
-        data = h_misali.set_file(f).read_acel(1,"all")
+        data = h_misali.set_file(f).read_acel(1,"all")#[0:5000]
         h_misali_stats["mean"].append(data.mean(axis=0))
         h_misali_stats["variance"].append(np.var(data,axis=0))
         h_misali_stats["kurtosis"].append(stats.kurtosis(data,axis=0))
         h_misali_stats["skewness"].append(stats.skew(data,axis=0))
 
     for f in v_misali.list_files():
-        data = v_misali.set_file(f).read_acel(1,"all")
+        data = v_misali.set_file(f).read_acel(1,"all")#[0:5000]
         v_misali_stats["mean"].append(data.mean(axis=0))
         v_misali_stats["variance"].append(np.var(data,axis=0))
         v_misali_stats["kurtosis"].append(stats.kurtosis(data,axis=0))
         v_misali_stats["skewness"].append(stats.skew(data,axis=0))
 
+    for f in imbalan.list_files():
+        data = imbalan.set_file(f).read_acel(1,"all")#[0:5000]
+        imbalance_stats["mean"].append(data.mean(axis=0))
+        imbalance_stats["variance"].append(np.var(data,axis=0))
+        imbalance_stats["kurtosis"].append(stats.kurtosis(data,axis=0))
+        imbalance_stats["skewness"].append(stats.skew(data,axis=0))
+
     mean_values = np.asarray(normal_stats["mean"])
     h_misali_mean_values = np.asarray(h_misali_stats["mean"])
     v_misali_mean_values = np.asarray(v_misali_stats["mean"])
+    imbalance_mean_values = np.asarray(imbalance_stats["mean"])
     figure = plt.figure(num=1,figsize=(8, 8),)
     axis = figure.add_subplot(projection="3d")
     axis.scatter(mean_values[:, 0], mean_values[:, 1], mean_values[:, 2], color="blue", label="Normal")
     axis.scatter(h_misali_mean_values[:, 0], h_misali_mean_values[:, 1], h_misali_mean_values[:, 2], color="red", label="Desalinhamento horizontal")
     axis.scatter(v_misali_mean_values[:, 0], v_misali_mean_values[:, 1], v_misali_mean_values[:, 2], color="green", label="Desalinhamento vertical")
+    axis.scatter(imbalance_mean_values[:, 0], imbalance_mean_values[:, 1], imbalance_mean_values[:, 2], color="cyan", label="Desbalanceado")
     axis.set_xlabel("Media do eixo X")
     axis.set_ylabel("Media do eixo Y")
     axis.set_zlabel("Media do eixo Z")
     axis.set_title("Media dos dados")
     axis.legend()
+    print(f"Media - Normal: {mean_values.shape[0]} | Desalinhamento horizontal: {h_misali_mean_values.shape[0]} | Desalinhamento vertical: {v_misali_mean_values.shape[0]} | Desbalanceado: {imbalance_mean_values.shape[0]}")
 
     variance_values = np.asarray(normal_stats["variance"])
     h_misali_variance_values = np.asarray(h_misali_stats["variance"])
     v_misali_variance_values = np.asarray(v_misali_stats["variance"])
+    imbalance_variance_values = np.asarray(imbalance_stats["variance"])
     figure = plt.figure(num=2,figsize=(8, 8))
     axis = figure.add_subplot(projection="3d")
     axis.scatter(variance_values[:, 0], variance_values[:, 1], variance_values[:, 2], color="blue", label="Normal")
     axis.scatter(h_misali_variance_values[:, 0], h_misali_variance_values[:, 1], h_misali_variance_values[:, 2], color="red", label="Desalinhamento horizontal")
     axis.scatter(v_misali_variance_values[:, 0], v_misali_variance_values[:, 1], v_misali_variance_values[:, 2], color="green", label="Desalinhamento vertical")
+    axis.scatter(imbalance_variance_values[:, 0], imbalance_variance_values[:, 1], imbalance_variance_values[:, 2], color="cyan", label="Desbalanceado")
     axis.set_xlabel("Variancia do eixo X")
     axis.set_ylabel("Variancia do eixo Y")
     axis.set_zlabel("Variancia do eixo Z")
     axis.set_title("Variancia dos dados")
     axis.legend()
+    print(f"Variancia - Normal: {variance_values.shape[0]} | Desalinhamento horizontal: {h_misali_variance_values.shape[0]} | Desalinhamento vertical: {v_misali_variance_values.shape[0]} | Desbalanceado: {imbalance_variance_values.shape[0]}")
 
     kurtosis_values = np.asarray(normal_stats["kurtosis"])
     h_misali_kurtosis_values = np.asarray(h_misali_stats["kurtosis"])
     v_misali_kurtosis_values = np.asarray(v_misali_stats["kurtosis"])
+    imbalance_kurtosis_values = np.asarray(imbalance_stats["kurtosis"])
     figure = plt.figure(num=3,figsize=(8, 8))
     axis = figure.add_subplot(projection="3d")
     axis.scatter(kurtosis_values[:, 0], kurtosis_values[:, 1], kurtosis_values[:, 2], color="blue", label="Normal")
     axis.scatter(h_misali_kurtosis_values[:, 0], h_misali_kurtosis_values[:, 1], h_misali_kurtosis_values[:, 2], color="red", label="Desalinhamento horizontal")
     axis.scatter(v_misali_kurtosis_values[:, 0], v_misali_kurtosis_values[:, 1], v_misali_kurtosis_values[:, 2], color="green", label="Desalinhamento vertical")
+    axis.scatter(imbalance_kurtosis_values[:, 0], imbalance_kurtosis_values[:, 1], imbalance_kurtosis_values[:, 2], color="cyan", label="Desbalanceado")
     axis.set_xlabel("Kurtosis do eixo X")
     axis.set_ylabel("Kurtosis do eixo Y")
     axis.set_zlabel("Kurtosis do eixo Z")
     axis.set_title("Kurtosis dos dados")
     axis.legend()
+    print(f"Kurtosis - Normal: {kurtosis_values.shape[0]} | Desalinhamento horizontal: {h_misali_kurtosis_values.shape[0]} | Desalinhamento vertical: {v_misali_kurtosis_values.shape[0]} | Desbalanceado: {imbalance_kurtosis_values.shape[0]}")
 
     skewness_values = np.asarray(normal_stats["skewness"])
     h_misali_skewness_values = np.asarray(h_misali_stats["skewness"])
     v_misali_skewness_values = np.asarray(v_misali_stats["skewness"])
+    imbalance_skewness_values = np.asarray(imbalance_stats["skewness"])
     figure = plt.figure(num=4,figsize=(8, 8))
     axis = figure.add_subplot(projection="3d")
     axis.scatter(skewness_values[:, 0], skewness_values[:, 1], skewness_values[:, 2], color="blue", label="Normal")
     axis.scatter(h_misali_skewness_values[:, 0], h_misali_skewness_values[:, 1], h_misali_skewness_values[:, 2], color="red", label="Desalinhamento horizontal")
     axis.scatter(v_misali_skewness_values[:, 0], v_misali_skewness_values[:, 1], v_misali_skewness_values[:, 2], color="green", label="Desalinhamento vertical")
+    axis.scatter(imbalance_skewness_values[:, 0], imbalance_skewness_values[:, 1], imbalance_skewness_values[:, 2], color="cyan", label="Desbalanceado")
     axis.set_xlabel("Obliquidade do eixo X")
     axis.set_ylabel("Obliquidade do eixo Y")
     axis.set_zlabel("Obliquidade do eixo Z")
     axis.set_title("Obliquidade dos dados")
     axis.legend()
+    print(f"Obliquidade - Normal: {skewness_values.shape[0]} | Desalinhamento horizontal: {h_misali_skewness_values.shape[0]} | Desalinhamento vertical: {v_misali_skewness_values.shape[0]} | Desbalanceado: {imbalance_skewness_values.shape[0]}")
 
 
     plt.show()

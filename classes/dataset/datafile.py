@@ -3,6 +3,7 @@ import numpy as np
 from typing import Literal
 import os
 import matplotlib.pyplot as plt
+import scipy.io
 from matplotlib.widgets import CheckButtons
 
 ACEL_NUM = Literal[1,2,"all"]
@@ -27,13 +28,13 @@ class DataFile:
         return path
 
     def read_all(self):
-        return pd.read_csv(self.get_path(), header=None).to_numpy()
+        return pd.read_csv(self.get_path(), header=None, encoding="latin-1").to_numpy()
 
     def read_tacometro(self):
-        return pd.read_csv(self.get_path(), header=None).iloc[:,self._tac_].to_numpy()
+        return pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._tac_].to_numpy()
 
     def read_acel(self, acel : list[ACEL_NUM] | ACEL_NUM | "all" = "all", axis : list[ACEL_AXIS] | ACEL_AXIS | "all"  = "all"):
-        data = pd.read_csv(self.get_path(), header=None)
+        data = pd.read_csv(self.get_path(), header=None, encoding="latin-1")
         colunas = [
             self._acel_[acelerometro][eixo]
             for acelerometro    in ((1, 2) if acel == "all" else (acel if isinstance(acel,list) else [acel]))
@@ -42,11 +43,11 @@ class DataFile:
         return data.iloc[:, colunas].to_numpy()
 
     def read_sound(self):
-        return pd.read_csv(self.get_path(), header=None).iloc[:,self._sound_].to_numpy()
+        return pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._sound_].to_numpy()
 
     def plot_signals(self, show: bool = True):
         """Plota os sinais do arquivo com controles para ocultar ou exibir cada canal."""
-        data = pd.read_csv(self.get_path(), header=None)
+        data = pd.read_csv(self.get_path(), header=None, encoding="latin-1")
         signal_names = [
             "Tacometro",
             "Acelerometro 1 - eixo X",
@@ -130,3 +131,7 @@ class DataFile:
             plt.show()
 
         return figure, axis
+
+    def save_mat(self) :
+        data = self.read_all()
+        scipy.io.savemat(file_name=self.get_path().replace(".csv",".mat"),mdict={self.get_path().replace(".csv","") : data})

@@ -18,7 +18,11 @@ class Hmisali(df.DataFile):
 
     def list_files(self):
         pasta = Path(self.get_path())
-        return sorted(arquivo.name for arquivo in pasta.iterdir() if arquivo.is_file())
+        return sorted(
+            arquivo.name
+            for arquivo in pasta.iterdir()
+            if arquivo.is_file() and arquivo.suffix.lower() == ".csv"
+        )
 
     def set_file(self,file):
         if Path(self.get_path() + "/" + file):

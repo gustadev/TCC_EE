@@ -3,3 +3,4 @@ __pycache__
 classes/dataset/__pycache__
 .venv
 *.zip
+*.db
