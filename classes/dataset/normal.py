@@ -11,11 +11,8 @@ class Normal(df.DataFile):
         self.lvl = ""
         self.file = ""
 
-    def list_files(self):
-        pasta = Path(self.get_path())
-        return sorted(arquivo.name for arquivo in pasta.iterdir() if arquivo.is_file())
-
-    def set_file(self,file):
+    def set_file(self,file,mat=True):
+        file = str.replace(file,".csv",".mat")
         if Path(self.get_path() + "/" + file):
             self.path[3] = "/" + file
             return self

@@ -9,14 +9,14 @@ from classes.dataset.overhang import Overhang,OH_LVL,OH_TIPE
 from classes.dataset.underhang import Underhang,UN_LVL,UN_TIPE
 import matplotlib.pyplot as plt
 
-h_misali    =   Hmisali().set_lvl('1.5mm')
+h_misali    =   Hmisali().set_lvl('2.0mm')
 v_misali    =   Vmisali().set_lvl('1.90mm')
-imbalan     =   Imbalance().set_lvl('6g')
+imbalan     =   Imbalance().set_lvl('35g')
 normal      =   Normal()
-overhang    =   Overhang().set_lvl('6g')
-underhang   =   Underhang().set_lvl('6g')
+overhang    =   Overhang().set_lvl('35g')
+underhang   =   Underhang().set_lvl('35g')
 
 
-for f in h_misali.list_files():
-    h_misali.set_file(f)
-    h_misali.save_mat()
+for f in normal.list_files():
+    normal.set_file(f)
+    normal.save_mat()

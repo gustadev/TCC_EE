@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from typing import Literal
 import os
+from pathlib import Path
 import matplotlib.pyplot as plt
 import scipy.io
 from matplotlib.widgets import CheckButtons
@@ -27,10 +28,20 @@ class DataFile:
             path += p
         return path
 
+    def list_files(self,mat=True):
+        pasta = Path(self.get_path())
+        return sorted(
+            arquivo.name
+            for arquivo in pasta.iterdir()
+            if arquivo.is_file() and ((arquivo.suffix.lower() == ".csv" and not mat) or (arquivo.suffix.lower() == ".mat" and mat))
+        )
+
     def read_all(self):
         return pd.read_csv(self.get_path(), header=None, encoding="latin-1").to_numpy()
 
     def read_tacometro(self):
+        if(Path(self.get_path()).suffix.lower()=='.mat'):
+            return pd.DataFrame(scipy.io.loadmat(self.get_path())[str.replace(str.replace(self.get_path().removesuffix('.mat'),'/','_'),'.','_')]).iloc[:,self._tac_].to_numpy()
         return pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._tac_].to_numpy()
 
     def borda_de_subida(self):
@@ -59,7 +70,11 @@ class DataFile:
         return split_data
 
     def read_acel(self, acel : list[ACEL_NUM] | ACEL_NUM | "all" = "all", axis : list[ACEL_AXIS] | ACEL_AXIS | "all"  = "all", split = False):
-        data = pd.read_csv(self.get_path(), header=None, encoding="latin-1")
+        if(Path(self.get_path()).suffix.lower()=='.mat'):
+            data = pd.DataFrame(scipy.io.loadmat(self.get_path())[str.replace(str.replace(self.get_path().removesuffix('.mat'),'/','_'),'.','_')])
+            print(data.shape)
+        else:
+            data = pd.read_csv(self.get_path(), header=None, encoding="latin-1")
         colunas = [
             self._acel_[acelerometro][eixo]
             for acelerometro    in ((1, 2) if acel == "all" else (acel if isinstance(acel,list) else [acel]))
@@ -163,5 +178,9 @@ class DataFile:
         return figure, axis
 
     def save_mat(self) :
-        data = self.read_all()
-        scipy.io.savemat(file_name=self.get_path().replace(".csv",".mat"),mdict={self.get_path().replace(".csv","") : data})
+        input_path = Path(self.get_path())
+        variable_name = str(input_path.with_suffix("")).replace("/", "_").replace(".", "_")
+        scipy.io.savemat(
+            file_name=input_path.with_suffix(".mat"),
+            mdict={variable_name: self.read_all()},
+        )

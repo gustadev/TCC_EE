@@ -17,10 +17,6 @@ class Vmisali(df.DataFile):
         self.path[2] = "/" + lvl
         return self
 
-    def list_files(self):
-        pasta = Path(self.get_path())
-        return sorted(arquivo.name for arquivo in pasta.iterdir() if arquivo.is_file())
-
     def set_file(self,file):
         if Path(self.get_path() + "/" + file):
             self.path[3] = "/" + file
