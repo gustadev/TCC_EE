@@ -33,17 +33,47 @@ class DataFile:
     def read_tacometro(self):
         return pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._tac_].to_numpy()
 
-    def read_acel(self, acel : list[ACEL_NUM] | ACEL_NUM | "all" = "all", axis : list[ACEL_AXIS] | ACEL_AXIS | "all"  = "all"):
+    def borda_de_subida(self):
+        max_taco = []
+        for v in self.read_tacometro() :
+            if v > 2:
+                max_taco.append(1)
+            else:
+                max_taco.append(0)
+
+        d_max_taco = [1 if v > 0 else 0 for v in np.diff(max_taco)]
+
+        tupla_taco = []
+        tupla = []
+        for index, v in enumerate(d_max_taco):
+            if v > 0:
+                tupla.append(index)
+            if len(tupla) == 2:
+                tupla_taco.append(tupla)
+                tupla = [index+1]
+        return tupla_taco
+    def split_data(self,data):
+        split_data = []
+        for si in self.borda_de_subida():
+            split_data.append(data[si[0]:si[1]])
+        return split_data
+
+    def read_acel(self, acel : list[ACEL_NUM] | ACEL_NUM | "all" = "all", axis : list[ACEL_AXIS] | ACEL_AXIS | "all"  = "all", split = False):
         data = pd.read_csv(self.get_path(), header=None, encoding="latin-1")
         colunas = [
             self._acel_[acelerometro][eixo]
             for acelerometro    in ((1, 2) if acel == "all" else (acel if isinstance(acel,list) else [acel]))
             for eixo            in (("x", "y", "z") if axis == "all" else (axis if isinstance(axis,list) else [axis]))
         ]
+        if split==True:
+            return self.split_data(data.iloc[:, colunas].to_numpy())
         return data.iloc[:, colunas].to_numpy()
 
-    def read_sound(self):
-        return pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._sound_].to_numpy()
+    def read_sound(self,split = False):
+        sound = pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._sound_].to_numpy()
+        if split==True:
+            return self.split_data(sound)
+        return sound
 
     def plot_signals(self, show: bool = True):
         """Plota os sinais do arquivo com controles para ocultar ou exibir cada canal."""
