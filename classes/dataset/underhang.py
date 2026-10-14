@@ -19,7 +19,7 @@ class Underhang(df.DataFile):
         self.path[3] = "/" + lvl
         return self
 
-    def tipe(self, tipe : UN_TIPE):
+    def type(self, tipe : UN_TIPE):
         # Valor Possival: "ball_fault", "cage_fault", "outer_race"
         self.path[2] = "/" + tipe
         return self

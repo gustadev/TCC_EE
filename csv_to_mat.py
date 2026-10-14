@@ -13,10 +13,10 @@ h_misali    =   Hmisali().set_lvl('2.0mm')
 v_misali    =   Vmisali().set_lvl('1.90mm')
 imbalan     =   Imbalance().set_lvl('35g')
 normal      =   Normal()
-overhang    =   Overhang().set_lvl('35g')
-underhang   =   Underhang().set_lvl('35g')
+overhang    =   Overhang().type("outer_race").set_lvl('35g')
+underhang   =   Underhang().type("outer_race").set_lvl('35g')
 
 
-for f in normal.list_files():
-    normal.set_file(f)
-    normal.save_mat()
+for f in underhang.list_files(mat=False):
+    underhang.set_file(f)
+    underhang.save_mat()

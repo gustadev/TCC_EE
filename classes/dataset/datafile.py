@@ -36,8 +36,17 @@ class DataFile:
             if arquivo.is_file() and ((arquivo.suffix.lower() == ".csv" and not mat) or (arquivo.suffix.lower() == ".mat" and mat))
         )
 
-    def read_all(self):
-        return pd.read_csv(self.get_path(), header=None, encoding="latin-1").to_numpy()
+    def read_all(self, split=False):
+        path = self.get_path()
+        if(Path(path).suffix.lower() =='.mat'):
+            variable_name = path.removesuffix(".mat").replace("/", "_").replace(".", "_")
+            data = scipy.io.loadmat(path)[variable_name]
+        else:
+            data = pd.read_csv(path, header=None, encoding="latin-1").to_numpy()
+
+        if split:
+            return self.split_data(data)
+        return data
 
     def read_tacometro(self):
         if(Path(self.get_path()).suffix.lower()=='.mat'):
