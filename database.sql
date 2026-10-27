@@ -189,248 +189,248 @@ ALTER TABLE estatistica_valor
 
 DROP TABLE IF EXISTS sensor;
 
--- DROP MATERIALIZED VIEW IF EXISTS public.caracteristicas_limpo;
--- CREATE MATERIALIZED VIEW public.caracteristicas_limpo
--- TABLESPACE pg_default
--- AS
--- WITH ensaios AS (
---     SELECT
---         sc.serie AS serie_id,
---         sc.condicao AS condicao_id
---     FROM public.serie_condicao AS sc
---     JOIN public.condicao AS c
---         ON c.id = sc.condicao
--- ),
+DROP MATERIALIZED VIEW IF EXISTS public.caracteristicas_limpo;
+CREATE MATERIALIZED VIEW public.caracteristicas_limpo
+TABLESPACE pg_default
+AS
+WITH ensaios AS (
+    SELECT
+        sc.serie AS serie_id,
+        sc.condicao AS condicao_id
+    FROM public.serie_condicao AS sc
+    JOIN public.condicao AS c
+        ON c.id = sc.condicao
+),
 
--- sinais AS (
---     SELECT
---         e.serie_id,
---         e.condicao_id,
---         a.fatia,
---         v.canal,
---         v.valor
---     FROM ensaios AS e
---     JOIN public.amostras AS a
---         ON a.serie = e.serie_id
---     CROSS JOIN LATERAL (
---         VALUES
---             ('acel_x1', a.acel_x1),
---             ('acel_y1', a.acel_y1),
---             ('acel_z1', a.acel_z1),
---             ('acel_x2', a.acel_x2),
---             ('acel_y2', a.acel_y2),
---             ('acel_z2', a.acel_z2),
---             ('mic',     a.mic)
---     ) AS v(canal, valor)
--- ),
+sinais AS (
+    SELECT
+        e.serie_id,
+        e.condicao_id,
+        a.fatia,
+        v.canal,
+        v.valor
+    FROM ensaios AS e
+    JOIN public.amostras AS a
+        ON a.serie = e.serie_id
+    CROSS JOIN LATERAL (
+        VALUES
+            ('acel_x1', a.acel_x1),
+            ('acel_y1', a.acel_y1),
+            ('acel_z1', a.acel_z1),
+            ('acel_x2', a.acel_x2),
+            ('acel_y2', a.acel_y2),
+            ('acel_z2', a.acel_z2),
+            ('mic',     a.mic)
+    ) AS v(canal, valor)
+),
 
--- momentos_brutos AS (
---     SELECT
---         serie_id,
---         condicao_id,
---         fatia,
---         canal,
---         COUNT(*) AS n,
---         AVG(valor) AS m1,
---         AVG(POWER(valor, 2)) AS m2,
---         AVG(POWER(valor, 3)) AS m3,
---         AVG(POWER(valor, 4)) AS m4,
---         SUM(POWER(valor, 2)) AS energia,
---         MAX(ABS(valor)) AS pico
---     FROM sinais
---     GROUP BY
---         serie_id,
---         condicao_id,
---         fatia,
---         canal
--- ),
+momentos_brutos AS (
+    SELECT
+        serie_id,
+        condicao_id,
+        fatia,
+        canal,
+        COUNT(*) AS n,
+        AVG(valor) AS m1,
+        AVG(POWER(valor, 2)) AS m2,
+        AVG(POWER(valor, 3)) AS m3,
+        AVG(POWER(valor, 4)) AS m4,
+        SUM(POWER(valor, 2)) AS energia,
+        MAX(ABS(valor)) AS pico
+    FROM sinais
+    GROUP BY
+        serie_id,
+        condicao_id,
+        fatia,
+        canal
+),
 
--- momentos_centrados AS (
---     SELECT
---         *,
---         m2 - POWER(m1, 2) AS mu2,
---         m3
---             - 3 * m1 * m2
---             + 2 * POWER(m1, 3) AS mu3,
---         m4
---             - 4 * m1 * m3
---             + 6 * POWER(m1, 2) * m2
---             - 3 * POWER(m1, 4) AS mu4
---     FROM momentos_brutos
--- ),
+momentos_centrados AS (
+    SELECT
+        *,
+        m2 - POWER(m1, 2) AS mu2,
+        m3
+            - 3 * m1 * m2
+            + 2 * POWER(m1, 3) AS mu3,
+        m4
+            - 4 * m1 * m3
+            + 6 * POWER(m1, 2) * m2
+            - 3 * POWER(m1, 4) AS mu4
+    FROM momentos_brutos
+),
 
--- caracteristicas AS (
---     SELECT
---         serie_id,
---         condicao_id,
---         fatia,
---         canal,
---         n,
---         energia,
---         mu2 AS variancia,
---         SQRT(GREATEST(m2, 0)) AS rms,
+caracteristicas AS (
+    SELECT
+        serie_id,
+        condicao_id,
+        fatia,
+        canal,
+        n,
+        energia,
+        mu2 AS variancia,
+        SQRT(GREATEST(m2, 0)) AS rms,
 
---         mu3 / NULLIF(
---             POWER(GREATEST(mu2, 0), 1.5),
---             0
---         ) AS obliquidade,
+        mu3 / NULLIF(
+            POWER(GREATEST(mu2, 0), 1.5),
+            0
+        ) AS obliquidade,
 
---         mu4 / NULLIF(
---             POWER(GREATEST(mu2, 0), 2),
---             0
---         ) AS curtose,
+        mu4 / NULLIF(
+            POWER(GREATEST(mu2, 0), 2),
+            0
+        ) AS curtose,
 
---         pico / NULLIF(
---             SQRT(GREATEST(m2, 0)),
---             0
---         ) AS fator_crista
+        pico / NULLIF(
+            SQRT(GREATEST(m2, 0)),
+            0
+        ) AS fator_crista
 
---     FROM momentos_centrados
--- )
+    FROM momentos_centrados
+)
 
--- SELECT
---     serie_id,
---     fatia,
---     condicao_id,
---     MAX(n) AS n,
+SELECT
+    serie_id,
+    fatia,
+    condicao_id,
+    MAX(n) AS n,
 
---     MAX(energia) FILTER (
---         WHERE canal = 'acel_x1'
---     ) AS acel_x1_energia,
---     MAX(variancia) FILTER (
---         WHERE canal = 'acel_x1'
---     ) AS acel_x1_variancia,
---     MAX(rms) FILTER (
---         WHERE canal = 'acel_x1'
---     ) AS acel_x1_rms,
---     MAX(obliquidade) FILTER (
---         WHERE canal = 'acel_x1'
---     ) AS acel_x1_obliquidade,
---     MAX(curtose) FILTER (
---         WHERE canal = 'acel_x1'
---     ) AS acel_x1_curtose,
---     MAX(fator_crista) FILTER (
---         WHERE canal = 'acel_x1'
---     ) AS acel_x1_fator_crista,
+    MAX(energia) FILTER (
+        WHERE canal = 'acel_x1'
+    ) AS acel_x1_energia,
+    MAX(variancia) FILTER (
+        WHERE canal = 'acel_x1'
+    ) AS acel_x1_variancia,
+    MAX(rms) FILTER (
+        WHERE canal = 'acel_x1'
+    ) AS acel_x1_rms,
+    MAX(obliquidade) FILTER (
+        WHERE canal = 'acel_x1'
+    ) AS acel_x1_obliquidade,
+    MAX(curtose) FILTER (
+        WHERE canal = 'acel_x1'
+    ) AS acel_x1_curtose,
+    MAX(fator_crista) FILTER (
+        WHERE canal = 'acel_x1'
+    ) AS acel_x1_fator_crista,
 
---     MAX(energia) FILTER (
---         WHERE canal = 'acel_y1'
---     ) AS acel_y1_energia,
---     MAX(variancia) FILTER (
---         WHERE canal = 'acel_y1'
---     ) AS acel_y1_variancia,
---     MAX(rms) FILTER (
---         WHERE canal = 'acel_y1'
---     ) AS acel_y1_rms,
---     MAX(obliquidade) FILTER (
---         WHERE canal = 'acel_y1'
---     ) AS acel_y1_obliquidade,
---     MAX(curtose) FILTER (
---         WHERE canal = 'acel_y1'
---     ) AS acel_y1_curtose,
---     MAX(fator_crista) FILTER (
---         WHERE canal = 'acel_y1'
---     ) AS acel_y1_fator_crista,
+    MAX(energia) FILTER (
+        WHERE canal = 'acel_y1'
+    ) AS acel_y1_energia,
+    MAX(variancia) FILTER (
+        WHERE canal = 'acel_y1'
+    ) AS acel_y1_variancia,
+    MAX(rms) FILTER (
+        WHERE canal = 'acel_y1'
+    ) AS acel_y1_rms,
+    MAX(obliquidade) FILTER (
+        WHERE canal = 'acel_y1'
+    ) AS acel_y1_obliquidade,
+    MAX(curtose) FILTER (
+        WHERE canal = 'acel_y1'
+    ) AS acel_y1_curtose,
+    MAX(fator_crista) FILTER (
+        WHERE canal = 'acel_y1'
+    ) AS acel_y1_fator_crista,
 
---     MAX(energia) FILTER (
---         WHERE canal = 'acel_z1'
---     ) AS acel_z1_energia,
---     MAX(variancia) FILTER (
---         WHERE canal = 'acel_z1'
---     ) AS acel_z1_variancia,
---     MAX(rms) FILTER (
---         WHERE canal = 'acel_z1'
---     ) AS acel_z1_rms,
---     MAX(obliquidade) FILTER (
---         WHERE canal = 'acel_z1'
---     ) AS acel_z1_obliquidade,
---     MAX(curtose) FILTER (
---         WHERE canal = 'acel_z1'
---     ) AS acel_z1_curtose,
---     MAX(fator_crista) FILTER (
---         WHERE canal = 'acel_z1'
---     ) AS acel_z1_fator_crista,
+    MAX(energia) FILTER (
+        WHERE canal = 'acel_z1'
+    ) AS acel_z1_energia,
+    MAX(variancia) FILTER (
+        WHERE canal = 'acel_z1'
+    ) AS acel_z1_variancia,
+    MAX(rms) FILTER (
+        WHERE canal = 'acel_z1'
+    ) AS acel_z1_rms,
+    MAX(obliquidade) FILTER (
+        WHERE canal = 'acel_z1'
+    ) AS acel_z1_obliquidade,
+    MAX(curtose) FILTER (
+        WHERE canal = 'acel_z1'
+    ) AS acel_z1_curtose,
+    MAX(fator_crista) FILTER (
+        WHERE canal = 'acel_z1'
+    ) AS acel_z1_fator_crista,
 
---     MAX(energia) FILTER (
---         WHERE canal = 'acel_x2'
---     ) AS acel_x2_energia,
---     MAX(variancia) FILTER (
---         WHERE canal = 'acel_x2'
---     ) AS acel_x2_variancia,
---     MAX(rms) FILTER (
---         WHERE canal = 'acel_x2'
---     ) AS acel_x2_rms,
---     MAX(obliquidade) FILTER (
---         WHERE canal = 'acel_x2'
---     ) AS acel_x2_obliquidade,
---     MAX(curtose) FILTER (
---         WHERE canal = 'acel_x2'
---     ) AS acel_x2_curtose,
---     MAX(fator_crista) FILTER (
---         WHERE canal = 'acel_x2'
---     ) AS acel_x2_fator_crista,
+    MAX(energia) FILTER (
+        WHERE canal = 'acel_x2'
+    ) AS acel_x2_energia,
+    MAX(variancia) FILTER (
+        WHERE canal = 'acel_x2'
+    ) AS acel_x2_variancia,
+    MAX(rms) FILTER (
+        WHERE canal = 'acel_x2'
+    ) AS acel_x2_rms,
+    MAX(obliquidade) FILTER (
+        WHERE canal = 'acel_x2'
+    ) AS acel_x2_obliquidade,
+    MAX(curtose) FILTER (
+        WHERE canal = 'acel_x2'
+    ) AS acel_x2_curtose,
+    MAX(fator_crista) FILTER (
+        WHERE canal = 'acel_x2'
+    ) AS acel_x2_fator_crista,
 
---     MAX(energia) FILTER (
---         WHERE canal = 'acel_y2'
---     ) AS acel_y2_energia,
---     MAX(variancia) FILTER (
---         WHERE canal = 'acel_y2'
---     ) AS acel_y2_variancia,
---     MAX(rms) FILTER (
---         WHERE canal = 'acel_y2'
---     ) AS acel_y2_rms,
---     MAX(obliquidade) FILTER (
---         WHERE canal = 'acel_y2'
---     ) AS acel_y2_obliquidade,
---     MAX(curtose) FILTER (
---         WHERE canal = 'acel_y2'
---     ) AS acel_y2_curtose,
---     MAX(fator_crista) FILTER (
---         WHERE canal = 'acel_y2'
---     ) AS acel_y2_fator_crista,
+    MAX(energia) FILTER (
+        WHERE canal = 'acel_y2'
+    ) AS acel_y2_energia,
+    MAX(variancia) FILTER (
+        WHERE canal = 'acel_y2'
+    ) AS acel_y2_variancia,
+    MAX(rms) FILTER (
+        WHERE canal = 'acel_y2'
+    ) AS acel_y2_rms,
+    MAX(obliquidade) FILTER (
+        WHERE canal = 'acel_y2'
+    ) AS acel_y2_obliquidade,
+    MAX(curtose) FILTER (
+        WHERE canal = 'acel_y2'
+    ) AS acel_y2_curtose,
+    MAX(fator_crista) FILTER (
+        WHERE canal = 'acel_y2'
+    ) AS acel_y2_fator_crista,
 
---     MAX(energia) FILTER (
---         WHERE canal = 'acel_z2'
---     ) AS acel_z2_energia,
---     MAX(variancia) FILTER (
---         WHERE canal = 'acel_z2'
---     ) AS acel_z2_variancia,
---     MAX(rms) FILTER (
---         WHERE canal = 'acel_z2'
---     ) AS acel_z2_rms,
---     MAX(obliquidade) FILTER (
---         WHERE canal = 'acel_z2'
---     ) AS acel_z2_obliquidade,
---     MAX(curtose) FILTER (
---         WHERE canal = 'acel_z2'
---     ) AS acel_z2_curtose,
---     MAX(fator_crista) FILTER (
---         WHERE canal = 'acel_z2'
---     ) AS acel_z2_fator_crista,
+    MAX(energia) FILTER (
+        WHERE canal = 'acel_z2'
+    ) AS acel_z2_energia,
+    MAX(variancia) FILTER (
+        WHERE canal = 'acel_z2'
+    ) AS acel_z2_variancia,
+    MAX(rms) FILTER (
+        WHERE canal = 'acel_z2'
+    ) AS acel_z2_rms,
+    MAX(obliquidade) FILTER (
+        WHERE canal = 'acel_z2'
+    ) AS acel_z2_obliquidade,
+    MAX(curtose) FILTER (
+        WHERE canal = 'acel_z2'
+    ) AS acel_z2_curtose,
+    MAX(fator_crista) FILTER (
+        WHERE canal = 'acel_z2'
+    ) AS acel_z2_fator_crista,
 
---     MAX(energia) FILTER (
---         WHERE canal = 'mic'
---     ) AS mic_energia,
---     MAX(variancia) FILTER (
---         WHERE canal = 'mic'
---     ) AS mic_variancia,
---     MAX(rms) FILTER (
---         WHERE canal = 'mic'
---     ) AS mic_rms,
---     MAX(obliquidade) FILTER (
---         WHERE canal = 'mic'
---     ) AS mic_obliquidade,
---     MAX(curtose) FILTER (
---         WHERE canal = 'mic'
---     ) AS mic_curtose,
---     MAX(fator_crista) FILTER (
---         WHERE canal = 'mic'
---     ) AS mic_fator_crista
+    MAX(energia) FILTER (
+        WHERE canal = 'mic'
+    ) AS mic_energia,
+    MAX(variancia) FILTER (
+        WHERE canal = 'mic'
+    ) AS mic_variancia,
+    MAX(rms) FILTER (
+        WHERE canal = 'mic'
+    ) AS mic_rms,
+    MAX(obliquidade) FILTER (
+        WHERE canal = 'mic'
+    ) AS mic_obliquidade,
+    MAX(curtose) FILTER (
+        WHERE canal = 'mic'
+    ) AS mic_curtose,
+    MAX(fator_crista) FILTER (
+        WHERE canal = 'mic'
+    ) AS mic_fator_crista
 
--- FROM caracteristicas
--- GROUP BY
---     serie_id,
---     fatia,
---     condicao_id
+FROM caracteristicas
+GROUP BY
+    serie_id,
+    fatia,
+    condicao_id
 
--- WITH DATA;
+WITH DATA;
