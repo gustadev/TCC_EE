@@ -1,0 +1,14 @@
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: "1234"
+      POSTGRES_DB: database
+    ports:
+      - "5432:5432"
+    volumes:
+      - /home/gustavo/Containers/data/postgres:/var/lib/postgresql

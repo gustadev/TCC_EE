@@ -39,8 +39,9 @@ class DataFile:
     def read_all(self, split=False):
         path = self.get_path()
         if(Path(path).suffix.lower() =='.mat'):
+            variables = scipy.io.loadmat(path)
             variable_name = path.removesuffix(".mat").replace("/", "_").replace(".", "_")
-            data = scipy.io.loadmat(path)[variable_name]
+            data = variables[variable_name] if variable_name in variables else variables[path.removesuffix(".mat")]
         else:
             data = pd.read_csv(path, header=None, encoding="latin-1").to_numpy()
 
@@ -50,7 +51,10 @@ class DataFile:
 
     def read_tacometro(self):
         if(Path(self.get_path()).suffix.lower()=='.mat'):
-            return pd.DataFrame(scipy.io.loadmat(self.get_path())[str.replace(str.replace(self.get_path().removesuffix('.mat'),'/','_'),'.','_')]).iloc[:,self._tac_].to_numpy()
+            variables = scipy.io.loadmat(self.get_path())
+            variable_name = self.get_path().removesuffix(".mat").replace("/", "_").replace(".", "_")
+            data = variables[variable_name] if variable_name in variables else variables[self.get_path().removesuffix(".mat")]
+            return pd.DataFrame(data).iloc[:,self._tac_].to_numpy()
         return pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._tac_].to_numpy()
 
     def borda_de_subida(self):
@@ -80,8 +84,9 @@ class DataFile:
 
     def read_acel(self, acel : list[ACEL_NUM] | ACEL_NUM | "all" = "all", axis : list[ACEL_AXIS] | ACEL_AXIS | "all"  = "all", split = False):
         if(Path(self.get_path()).suffix.lower()=='.mat'):
-            data = pd.DataFrame(scipy.io.loadmat(self.get_path())[str.replace(str.replace(self.get_path().removesuffix('.mat'),'/','_'),'.','_')])
-            print(data.shape)
+            variables = scipy.io.loadmat(self.get_path())
+            variable_name = self.get_path().removesuffix(".mat").replace("/", "_").replace(".", "_")
+            data = pd.DataFrame(variables[variable_name] if variable_name in variables else variables[self.get_path().removesuffix(".mat")])
         else:
             data = pd.read_csv(self.get_path(), header=None, encoding="latin-1")
         colunas = [
@@ -94,7 +99,13 @@ class DataFile:
         return data.iloc[:, colunas].to_numpy()
 
     def read_sound(self,split = False):
-        sound = pd.read_csv(self.get_path(), header=None, encoding="latin-1").iloc[:,self._sound_].to_numpy()
+        if(Path(self.get_path()).suffix.lower()=='.mat'):
+            variables = scipy.io.loadmat(self.get_path())
+            variable_name = self.get_path().removesuffix(".mat").replace("/", "_").replace(".", "_")
+            data = pd.DataFrame(variables[variable_name] if variable_name in variables else variables[self.get_path().removesuffix(".mat")])
+        else:
+            data = pd.read_csv(self.get_path(), header=None, encoding="latin-1")
+        sound = data.iloc[:,self._sound_].to_numpy()
         if split==True:
             return self.split_data(sound)
         return sound
