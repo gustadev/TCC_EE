@@ -8,20 +8,20 @@ from classes.dataset.underhang import UN_LVL, UN_TIPE, Underhang
 from classes.dataset.vmisali import VM_LVL, Vmisali
 
 datasets = []
-# datasets += [Normal()]
+datasets += [Normal()]
 datasets += [Hmisali().set_lvl(level) for level in get_args(HM_LVL)]
-# datasets += [Imbalance().set_lvl(level) for level in get_args(IM_LVL)]
-# datasets += [Vmisali().set_lvl(level) for level in get_args(VM_LVL)]
-# datasets += [
-#     Overhang().type(condition_type).set_lvl(level)
-#     for condition_type in get_args(OH_TIPE)
-#     for level in get_args(OH_LVL)
-# ]
-# datasets += [
-#     Underhang().type(condition_type).set_lvl(level)
-#     for condition_type in get_args(UN_TIPE)
-#     for level in get_args(UN_LVL)
-# ]
+datasets += [Imbalance().set_lvl(level) for level in get_args(IM_LVL)]
+datasets += [Vmisali().set_lvl(level) for level in get_args(VM_LVL)]
+datasets += [
+                Overhang().type(condition_type).set_lvl(level)
+                for condition_type in get_args(OH_TIPE)
+                for level in get_args(OH_LVL)
+            ]
+datasets += [
+                Underhang().type(condition_type).set_lvl(level)
+                for condition_type in get_args(UN_TIPE)
+                for level in get_args(UN_LVL)
+            ]
 
 for dataset in datasets:
     for filename in dataset.list_files(mat=False):
