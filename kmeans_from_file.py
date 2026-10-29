@@ -21,7 +21,11 @@ parser.add_argument(
     type=Path,
     help=f"Arquivo .mat de entrada (padrão: {DEFAULT_INPUT_MAT_PATH})",
 )
-INPUT_MAT_PATH = parser.parse_args().mat_file
+args, unknown_args = parser.parse_known_args()
+unexpected_args = [arg for arg in unknown_args if not arg.startswith("--f=")]
+if unexpected_args:
+    parser.error(f"unrecognized arguments: {' '.join(unexpected_args)}")
+INPUT_MAT_PATH = args.mat_file
 OUTPUT_PLOT_PATH = INPUT_MAT_PATH.with_name(
     f"{INPUT_MAT_PATH.stem}_matriz_confusao.png"
 )
@@ -56,10 +60,43 @@ if not np.isin(train_flag, (0, 1)).all():
 
 train_mask = train_flag == 1
 test_mask = train_flag == 0
+cond_1 = np.unique(condition)[0]
+cond_2 = np.unique(condition)[1]
+
 features_train = features[train_mask]
-features_test = features[test_mask]
 labels_train = condition[train_mask]
+features_test = features[test_mask]
 labels_test = condition[test_mask]
+# Separando features train em 2 conditions
+features_train_cond1 = features_train[labels_train==cond_1]
+labels_train_cond1 = labels_train[labels_train==cond_1]
+features_train_cond2 = features_train[labels_train==cond_2]
+labels_train_cond2 = labels_train[labels_train==cond_2]
+
+# Pegando o menor contagem entre as condições
+train_number = min(labels_train_cond1.size, labels_train_cond2.size)
+
+features_train = np.concatenate(
+    (
+        features_train_cond1[:train_number, :],
+        features_train_cond2[:train_number, :],
+    ),
+    axis=0,
+)
+labels_train = np.concatenate(
+    (
+        labels_train_cond1[:train_number],
+        labels_train_cond2[:train_number],
+    ),
+    axis=0,
+)
+
+print(f"features_train_cond1: {features_train_cond1.shape}")
+print(f"labels_train_cond1: {labels_train_cond1.shape}")
+print(f"features_train_cond2: {features_train_cond2.shape}")
+print(f"labels_train_cond2: {labels_train_cond2.shape}")
+print(f"features_train: {features_train.shape}")
+print(f"labels_train: {labels_train.shape}")
 classes = np.unique(labels_train)
 
 if features_train.shape[0] == 0 or features_test.shape[0] == 0:
@@ -70,9 +107,9 @@ if not np.isin(labels_test, classes).all():
     raise ValueError("Há categorias no teste que não aparecem nos dados de treino.")
 
 # Ajusta a escala somente no treino e aplica os mesmos parâmetros ao teste.
-scaler = MinMaxScaler()
-features_train = scaler.fit_transform(features_train)
-features_test = scaler.transform(features_test)
+# scaler = MinMaxScaler()
+# features_train = scaler.fit_transform(features_train)
+# features_test = scaler.transform(features_test)
 preprocessing_description =  f"MinMaxScaler, NaN/Inf removidas: {removed_rows}"
 
 kmeans_model = KMeans(
