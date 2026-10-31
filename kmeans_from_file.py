@@ -6,6 +6,7 @@ import numpy as np
 from scipy.io import loadmat
 from scipy.optimize import linear_sum_assignment
 from sklearn.cluster import KMeans
+from sklearn.decomposition import FastICA, PCA
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, f1_score
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
@@ -29,6 +30,18 @@ parser.add_argument(
         "Normalização das features: 'minmax' (padrão), 'standard' "
         "(média zero e desvio padrão um) ou 'none' (sem normalização)."
     ),
+)
+parser.add_argument(
+    "--reduction",
+    choices=("pca", "ica"),
+    default=None,
+    help="Redução de dimensionalidade antes do KMeans: PCA ou ICA (padrão: nenhuma).",
+)
+parser.add_argument(
+    "--n-components",
+    type=int,
+    default=3,
+    help="Número de componentes para PCA/ICA (padrão: 3).",
 )
 args, unknown_args = parser.parse_known_args()
 unexpected_args = [arg for arg in unknown_args if not arg.startswith("--f=")]
@@ -129,6 +142,28 @@ if scaler is not None:
     features_train = scaler.fit_transform(features_train)
     features_test = scaler.transform(features_test)
 preprocessing_description += f", NaN/Inf removidas: {removed_rows}"
+
+if args.reduction is not None:
+    if args.n_components < 1:
+        raise ValueError("--n-components deve ser um inteiro positivo.")
+    max_components = min(features_train.shape)
+    if args.n_components > max_components:
+        raise ValueError(
+            f"--n-components={args.n_components} excede o máximo permitido "
+            f"({max_components}) para os dados de treino."
+        )
+
+    if args.reduction == "pca":
+        reducer = PCA(n_components=args.n_components)
+    else:
+        reducer = FastICA(n_components=args.n_components, random_state=42)
+
+    # Ajusta a redução somente no treino e aplica a mesma transformação ao teste.
+    features_train = reducer.fit_transform(features_train)
+    features_test = reducer.transform(features_test)
+    preprocessing_description += (
+        f", {args.reduction.upper()} ({args.n_components} componentes)"
+    )
 
 kmeans_model = KMeans(
     n_clusters=len(classes),
