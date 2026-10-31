@@ -7,7 +7,7 @@ from scipy.io import loadmat
 from scipy.optimize import linear_sum_assignment
 from sklearn.cluster import KMeans
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, f1_score
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 
 DEFAULT_INPUT_MAT_PATH = Path("Dados_Processados/normal_vs_horiz_misali.mat")
@@ -21,6 +21,15 @@ parser.add_argument(
     type=Path,
     help=f"Arquivo .mat de entrada (padrão: {DEFAULT_INPUT_MAT_PATH})",
 )
+parser.add_argument(
+    "--scaling",
+    choices=("minmax", "standard", "none"),
+    default="minmax",
+    help=(
+        "Normalização das features: 'minmax' (padrão), 'standard' "
+        "(média zero e desvio padrão um) ou 'none' (sem normalização)."
+    ),
+)
 args, unknown_args = parser.parse_known_args()
 unexpected_args = [arg for arg in unknown_args if not arg.startswith("--f=")]
 if unexpected_args:
@@ -29,7 +38,6 @@ INPUT_MAT_PATH = args.mat_file
 OUTPUT_PLOT_PATH = INPUT_MAT_PATH.with_name(
     f"{INPUT_MAT_PATH.stem}_matriz_confusao.png"
 )
-
 
 mat_data = loadmat(INPUT_MAT_PATH)
 data = np.asarray(mat_data["data"], dtype=float)
@@ -107,10 +115,20 @@ if not np.isin(labels_test, classes).all():
     raise ValueError("Há categorias no teste que não aparecem nos dados de treino.")
 
 # Ajusta a escala somente no treino e aplica os mesmos parâmetros ao teste.
-# scaler = MinMaxScaler()
-# features_train = scaler.fit_transform(features_train)
-# features_test = scaler.transform(features_test)
-preprocessing_description =  f"MinMaxScaler, NaN/Inf removidas: {removed_rows}"
+if args.scaling == "minmax":
+    scaler = MinMaxScaler()
+    preprocessing_description = "MinMaxScaler"
+elif args.scaling == "standard":
+    scaler = StandardScaler()
+    preprocessing_description = "StandardScaler (média zero, desvio padrão um)"
+else:
+    scaler = None
+    preprocessing_description = "sem normalização"
+
+if scaler is not None:
+    features_train = scaler.fit_transform(features_train)
+    features_test = scaler.transform(features_test)
+preprocessing_description += f", NaN/Inf removidas: {removed_rows}"
 
 kmeans_model = KMeans(
     n_clusters=len(classes),
