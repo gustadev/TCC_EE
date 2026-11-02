@@ -189,6 +189,59 @@ ALTER TABLE estatistica_valor
 
 DROP TABLE IF EXISTS sensor;
 
+-- public.serie_wavelet definition
+
+-- Drop table
+
+-- DROP TABLE public.serie_wavelet;
+
+CREATE TABLE IF NOT EXISTS serie_wavelet (
+	serie int4 NOT NULL,
+	fatia int4 NOT NULL,
+	wavelet int4 NOT NULL,
+	x1_ener float8 NULL,
+	x1_var float8 NULL,
+	x1_kurt float8 NULL,
+	x1_skew float8 NULL,
+	x1_crest float8 NULL,
+	y1_ener float8 NULL,
+	y1_var float8 NULL,
+	y1_kurt float8 NULL,
+	y1_skew float8 NULL,
+	y1_crest float8 NULL,
+	z1_ener float8 NULL,
+	z1_var float8 NULL,
+	z1_kurt float8 NULL,
+	z1_skew float8 NULL,
+	z1_crest float8 NULL,
+	x2_ener float8 NULL,
+	x2_var float8 NULL,
+	x2_kurt float8 NULL,
+	x2_skew float8 NULL,
+	x2_crest float8 NULL,
+	y2_ener float8 NULL,
+	y2_var float8 NULL,
+	y2_kurt float8 NULL,
+	y2_skew float8 NULL,
+	y2_crest float8 NULL,
+	z2_ener float8 NULL,
+	z2_var float8 NULL,
+	z2_kurt float8 NULL,
+	z2_skew float8 NULL,
+	z2_crest float8 NULL,
+	mic_ener float8 NULL,
+	mic_var float8 NULL,
+	mic_kurt float8 NULL,
+	mic_skew float8 NULL,
+	mic_crest float8 NULL,
+	CONSTRAINT pk_serie_wavelet PRIMARY KEY (serie, fatia, wavelet),
+	CONSTRAINT serie_wavelet_fatia_not_null NOT NULL fatia,
+	CONSTRAINT serie_wavelet_serie_not_null NOT NULL serie,
+	CONSTRAINT serie_wavelet_wavelet_not_null NOT NULL wavelet,
+	CONSTRAINT fk_serie_wavelet_serie FOREIGN KEY (serie) REFERENCES public.serie(id),
+	CONSTRAINT fk_serie_wavelet_wavelet FOREIGN KEY (wavelet) REFERENCES public.tipo_wavelet(id)
+);
+
 DROP MATERIALIZED VIEW IF EXISTS public.caracteristicas_limpo;
 CREATE MATERIALIZED VIEW public.caracteristicas_limpo
 TABLESPACE pg_default
