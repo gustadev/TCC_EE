@@ -48,9 +48,15 @@ unexpected_args = [arg for arg in unknown_args if not arg.startswith("--f=")]
 if unexpected_args:
     parser.error(f"unrecognized arguments: {' '.join(unexpected_args)}")
 INPUT_MAT_PATH = args.mat_file
+output_number = 1
 OUTPUT_PLOT_PATH = INPUT_MAT_PATH.with_name(
-    f"{INPUT_MAT_PATH.stem}_matriz_confusao.png"
+    f"{INPUT_MAT_PATH.stem}_matriz_confusao_{output_number}.png"
 )
+while OUTPUT_PLOT_PATH.exists():
+    output_number += 1
+    OUTPUT_PLOT_PATH = INPUT_MAT_PATH.with_name(
+        f"{INPUT_MAT_PATH.stem}_matriz_confusao_{output_number}.png"
+    )
 
 mat_data = loadmat(INPUT_MAT_PATH)
 data = np.asarray(mat_data["data"], dtype=float)
