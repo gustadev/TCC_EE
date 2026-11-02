@@ -37,6 +37,10 @@ Depois de gerar o arquivo MAT, escolha o tipo de normalização:
 python kmeans_from_file.py caminho/arquivo.mat --scaling minmax
 python kmeans_from_file.py caminho/arquivo.mat --scaling standard
 python kmeans_from_file.py caminho/arquivo.mat --scaling none
+python kmeans_from_file.py caminho/arquivo.mat --scaling standard --reduction pca --n-components 3
+python kmeans_from_file.py caminho/arquivo.mat --scaling standard --reduction ica --n-components 3
 ```
 
 `--scaling` aceita `minmax` (padrão), `standard` (centraliza pela média e divide pelo desvio padrão) ou `none` (desativa a normalização). O arquivo MAT pode ser omitido para usar `Dados_Processados/normal_vs_horiz_misali.mat`.
+
+`--reduction` seleciona `pca` ou `ica`; sem essa opção, nenhuma redução é aplicada. `--n-components` define a quantidade de componentes (padrão: 3). A redução é ajustada usando somente os dados de treino e depois aplicada aos dados de teste.
