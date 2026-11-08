@@ -1,14 +1,17 @@
 import argparse
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat
 from scipy.optimize import linear_sum_assignment
 from sklearn.cluster import KMeans
-from sklearn.decomposition import FastICA, PCA
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, f1_score
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
+from plot_results import plot_confusion_matrix, show_plots
+from preprocessing import (
+    create_balanced_train_test_sets,
+    normalize_features,
+    reduce_dimensions,
+)
 
 
 DEFAULT_INPUT_MAT_PATH = Path("Dados_Processados/normal_vs_horiz_misali.mat")
@@ -25,7 +28,7 @@ parser.add_argument(
 parser.add_argument(
     "--scaling",
     choices=("minmax", "standard", "none"),
-    default="minmax",
+    default="none",
     help=(
         "Normalização das features: 'minmax' (padrão), 'standard' "
         "(média zero e desvio padrão um) ou 'none' (sem normalização)."
@@ -43,192 +46,97 @@ parser.add_argument(
     default=3,
     help="Número de componentes para PCA/ICA (padrão: 3).",
 )
+parser.add_argument(
+    "--plot-training",
+    "--plot-training-confusion-matrix",
+    dest="plot_training",
+    action="store_true",
+    help="Também gera a matriz de confusão para os dados de treino.",
+)
 args, unknown_args = parser.parse_known_args()
 unexpected_args = [arg for arg in unknown_args if not arg.startswith("--f=")]
 if unexpected_args:
     parser.error(f"unrecognized arguments: {' '.join(unexpected_args)}")
-INPUT_MAT_PATH = args.mat_file
-output_number = 1
-OUTPUT_PLOT_PATH = INPUT_MAT_PATH.with_name(
-    f"{INPUT_MAT_PATH.stem}_matriz_confusao_{output_number}.png"
+
+input_mat_path = args.mat_file
+mat_data = loadmat(input_mat_path)
+prepared = create_balanced_train_test_sets(mat_data["data"])
+
+features_train, features_test, scaling_description = normalize_features(
+    prepared.features_train,
+    prepared.features_test,
+    args.scaling,
 )
-while OUTPUT_PLOT_PATH.exists():
-    output_number += 1
-    OUTPUT_PLOT_PATH = INPUT_MAT_PATH.with_name(
-        f"{INPUT_MAT_PATH.stem}_matriz_confusao_{output_number}.png"
-    )
-
-mat_data = loadmat(INPUT_MAT_PATH)
-data = np.asarray(mat_data["data"], dtype=float)
-
-if data.ndim != 2 or data.shape[1] < 3:
-    raise ValueError(
-        "O campo 'data' precisa conter treino, condicao e ao menos uma feature."
-    )
-
-# Colunas: treino (1 = treino, 0 = teste), condicao e features.
-train_flag = data[:, 0]
-condition = data[:, 1]
-features = data[:, 2:]
-
-# Remove linhas com valores ausentes ou infinitos.
-valid_rows = (
-    np.isfinite(train_flag)
-    & np.isfinite(condition)
-    & np.isfinite(features).all(axis=1)
+features_train, features_test, reduction_description = reduce_dimensions(
+    features_train,
+    features_test,
+    args.reduction,
+    args.n_components,
 )
-removed_rows = np.count_nonzero(~valid_rows)
-train_flag = train_flag[valid_rows]
-condition = condition[valid_rows]
-features = features[valid_rows]
-
-if not np.isin(train_flag, (0, 1)).all():
-    raise ValueError("A primeira coluna deve conter somente 0 (teste) ou 1 (treino).")
-
-train_mask = train_flag == 1
-test_mask = train_flag == 0
-cond_1 = np.unique(condition)[0]
-cond_2 = np.unique(condition)[1]
-
-features_train = features[train_mask]
-labels_train = condition[train_mask]
-features_test = features[test_mask]
-labels_test = condition[test_mask]
-# Separando features train em 2 conditions
-features_train_cond1 = features_train[labels_train==cond_1]
-labels_train_cond1 = labels_train[labels_train==cond_1]
-features_train_cond2 = features_train[labels_train==cond_2]
-labels_train_cond2 = labels_train[labels_train==cond_2]
-
-# Pegando o menor contagem entre as condições
-train_number = min(labels_train_cond1.size, labels_train_cond2.size)
-
-features_train = np.concatenate(
-    (
-        features_train_cond1[:train_number, :],
-        features_train_cond2[:train_number, :],
-    ),
-    axis=0,
+preprocessing_description = (
+    f"{scaling_description}; {reduction_description}; "
+    f"NaN/Inf removidas: {prepared.removed_rows}"
 )
-labels_train = np.concatenate(
-    (
-        labels_train_cond1[:train_number],
-        labels_train_cond2[:train_number],
-    ),
-    axis=0,
-)
-
-print(f"features_train_cond1: {features_train_cond1.shape}")
-print(f"labels_train_cond1: {labels_train_cond1.shape}")
-print(f"features_train_cond2: {features_train_cond2.shape}")
-print(f"labels_train_cond2: {labels_train_cond2.shape}")
-print(f"features_train: {features_train.shape}")
-print(f"labels_train: {labels_train.shape}")
-classes = np.unique(labels_train)
-
-if features_train.shape[0] == 0 or features_test.shape[0] == 0:
-    raise ValueError("O arquivo precisa conter dados de treino e de teste.")
-if len(classes) < 2:
-    raise ValueError("O treino precisa conter pelo menos duas categorias.")
-if not np.isin(labels_test, classes).all():
-    raise ValueError("Há categorias no teste que não aparecem nos dados de treino.")
-
-# Ajusta a escala somente no treino e aplica os mesmos parâmetros ao teste.
-if args.scaling == "minmax":
-    scaler = MinMaxScaler()
-    preprocessing_description = "MinMaxScaler"
-elif args.scaling == "standard":
-    scaler = StandardScaler()
-    preprocessing_description = "StandardScaler (média zero, desvio padrão um)"
-else:
-    scaler = None
-    preprocessing_description = "sem normalização"
-
-if scaler is not None:
-    features_train = scaler.fit_transform(features_train)
-    features_test = scaler.transform(features_test)
-preprocessing_description += f", NaN/Inf removidas: {removed_rows}"
-
-if args.reduction is not None:
-    if args.n_components < 1:
-        raise ValueError("--n-components deve ser um inteiro positivo.")
-    max_components = min(features_train.shape)
-    if args.n_components > max_components:
-        raise ValueError(
-            f"--n-components={args.n_components} excede o máximo permitido "
-            f"({max_components}) para os dados de treino."
-        )
-
-    if args.reduction == "pca":
-        reducer = PCA(n_components=args.n_components)
-    else:
-        reducer = FastICA(n_components=args.n_components, random_state=42)
-
-    # Ajusta a redução somente no treino e aplica a mesma transformação ao teste.
-    features_train = reducer.fit_transform(features_train)
-    features_test = reducer.transform(features_test)
-    preprocessing_description += (
-        f", {args.reduction.upper()} ({args.n_components} componentes)"
-    )
 
 kmeans_model = KMeans(
-    n_clusters=len(classes),
+    n_clusters=len(prepared.classes),
     n_init=20,
     random_state=42,
 ).fit(features_train)
 
 # Associa os IDs arbitrários dos clusters às categorias usando somente o treino.
 train_cluster_counts = np.zeros(
-    (len(classes), kmeans_model.n_clusters),
+    (len(prepared.classes), kmeans_model.n_clusters),
     dtype=int,
 )
-for class_index, class_value in enumerate(classes):
+for class_index, class_value in enumerate(prepared.classes):
     for cluster_index in range(kmeans_model.n_clusters):
         train_cluster_counts[class_index, cluster_index] = np.count_nonzero(
-            (labels_train == class_value)
+            (prepared.labels_train == class_value)
             & (kmeans_model.labels_ == cluster_index)
         )
 class_indices, cluster_indices = linear_sum_assignment(-train_cluster_counts)
 cluster_to_condition = {
-    cluster_index: classes[class_index]
+    cluster_index: prepared.classes[class_index]
     for class_index, cluster_index in zip(class_indices, cluster_indices)
 }
 
+train_clusters = kmeans_model.labels_
 test_clusters = kmeans_model.predict(features_test)
-predicted_labels = np.asarray(
+predicted_train_labels = np.asarray(
+    [cluster_to_condition[cluster] for cluster in train_clusters]
+)
+predicted_test_labels = np.asarray(
     [cluster_to_condition[cluster] for cluster in test_clusters]
 )
 
-matrix = confusion_matrix(labels_test, predicted_labels, labels=classes)
-f1 = f1_score(
-    labels_test,
-    predicted_labels,
-    labels=classes,
-    average="macro",
-    zero_division=0,
+model_description = (
+    f"KMeans: n_clusters={len(prepared.classes)}, n_init=20, random_state=42"
 )
-
-print("Categorias (ordem da matriz):", classes)
-print("Matriz de confusão (linhas = real, colunas = previsto):")
-print(matrix)
-print("F1-score (macro):", f1)
+print("Categorias (ordem da matriz):", prepared.classes)
 print("Pré-processamento:", preprocessing_description)
-print(f"KMeans: n_clusters={len(classes)}, n_init=20, random_state=42")
+print(model_description)
 
-display = ConfusionMatrixDisplay(confusion_matrix=matrix, display_labels=classes)
-display.plot(cmap="Blues", values_format="d", xticks_rotation="vertical")
-figure = display.figure_
-figure.suptitle(f"Matriz de confusão — {INPUT_MAT_PATH.name}")
-figure.text(
-    0.5,
-    0.01,
-    f"F1 macro: {f1:.4f}" # | KMeans: n_clusters={len(classes)}, n_init=20, "
-    f"random_state=42\nPré-processamento: {preprocessing_description}",
-    ha="center",
-    va="bottom",
-    wrap=True,
+plot_confusion_matrix(
+    prepared.labels_test,
+    predicted_test_labels,
+    prepared.classes,
+    input_mat_path,
+    "KMeans",
+    "teste",
+    model_description,
+    preprocessing_description,
 )
-figure.tight_layout(rect=(0, 0.12, 1, 0.93))
-figure.savefig(OUTPUT_PLOT_PATH, dpi=150, bbox_inches="tight")
-print("Gráfico salvo em:", OUTPUT_PLOT_PATH)
-plt.show()
+if args.plot_training:
+    plot_confusion_matrix(
+        prepared.labels_train,
+        predicted_train_labels,
+        prepared.classes,
+        input_mat_path,
+        "KMeans",
+        "treino",
+        model_description,
+        preprocessing_description,
+    )
+
+show_plots()

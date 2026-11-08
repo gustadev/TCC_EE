@@ -30,13 +30,27 @@ parser.add_argument(
     required=True,
     help="Caminho/nome do arquivo .mat de saída",
 )
+parser.add_argument(
+    "-c",
+    "--conditions",
+    nargs="+",
+    required=True,
+    metavar="CONDICAO",
+    help="Uma ou mais condições para substituir <lista_de_condicoes>",
+)
 args = parser.parse_args()
 
 query = args.query_path.read_text(encoding="utf-8")
+condition_marker = "<lista_de_condicoes>"
+if query.count(condition_marker) != 1:
+    parser.error(f"A consulta deve conter exatamente um marcador {condition_marker}.")
+conds = np.unique(args.conditions).tolist()
+condition_placeholders = ", ".join("%s" for _ in conds)
+query = query.replace(condition_marker, condition_placeholders)
 
 with psycopg.connect(DATABASE_URL) as connection:
     with connection.cursor() as cursor:
-        cursor.execute(query)
+        cursor.execute(query, conds)
         if cursor.description is None:
             raise ValueError("A consulta não retornou colunas para exportar.")
 

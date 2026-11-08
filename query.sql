@@ -10,7 +10,7 @@ with series as (
 	-- where c.name IN ('normal', 'overhang cage fault') 
 	-- where c.name IN ('normal', 'horizontal misalignment') 
 	-- where c.name IN ('normal', 'vertical misalignment') 
-	where c.name IN ('normal', 'imbalance') 
+	where c.name IN (<lista_de_condicoes>) 
 
 ),
 treino as (
