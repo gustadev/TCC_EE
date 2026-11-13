@@ -10,6 +10,7 @@ from scipy.io import savemat
 DATABASE_URL = getenv(
     "DATABASE_URL", "postgresql://admin:1234@localhost:5432/database"
 )
+SEED_RANDOM_POSTGRES = 0.42 # de -1.0 a 1.0
 
 parser = argparse.ArgumentParser(
     description="Executa uma consulta SQL e salva o resultado em um arquivo .mat."
@@ -50,6 +51,7 @@ query = query.replace(condition_marker, condition_placeholders)
 
 with psycopg.connect(DATABASE_URL) as connection:
     with connection.cursor() as cursor:
+        cursor.execute("select setseed(%s);",(SEED_RANDOM_POSTGRES,))
         cursor.execute(query, conds)
         if cursor.description is None:
             raise ValueError("A consulta não retornou colunas para exportar.")

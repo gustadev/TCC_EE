@@ -23,13 +23,18 @@ python -m pip install -r requirements.txt
 ## Utilizando os scripts
 Apos ativar o ambiente virtual (Linux: `source .venv/bin/activate`; Windows: `.venv\Scripts\Activate.ps1`), execute os scripts com `python script.py`.
 
-### Exportar uma consulta do PostgreSQL para MAT
-Edite a constante `QUERY` em `query_to_mat.py` com a consulta desejada e execute:
+### Gerar conjuntos MAT para classificação
+Com o PostgreSQL configurado, execute o shellscript:
 ```bash
-python query_to_mat.py
+bash gerar_arquivos.sh
 ```
 
-O arquivo de saída é definido pela constante `OUTPUT_PATH`. A conexão usa `DATABASE_URL` ou `postgresql://admin:1234@localhost:5432/database`. A variável MATLAB `data` é uma matriz numérica com uma linha por resultado; `parameter_names` contém os nomes das colunas na mesma ordem.
+Ele salva os arquivos em `Dados_Processados/fatiados` e `Dados_Processados/inteiros`: nove arquivos para comparações entre `normal` e cada falha, além de `all_conditions_all_features.mat` com todas as condições em cada pasta. Cada arquivo contém a matriz `data` e os nomes das colunas em `parameter_names`.
+
+A conexão usa `DATABASE_URL` ou `postgresql://admin:1234@localhost:5432/database`. Para usar outra conexão:
+```bash
+DATABASE_URL=postgresql://usuario:senha@localhost:5432/database bash gerar_arquivos.sh
+```
 
 ### Executar o KMeans e gerar a matriz de confusão
 Depois de gerar o arquivo MAT, escolha o tipo de normalização:

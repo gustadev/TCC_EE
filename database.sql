@@ -199,37 +199,30 @@ CREATE TABLE IF NOT EXISTS serie_wavelet (
 	serie int4 NOT NULL,
 	fatia int4 NOT NULL,
 	wavelet int4 NOT NULL,
-	x1_ener float8 NULL,
 	x1_var float8 NULL,
 	x1_kurt float8 NULL,
 	x1_skew float8 NULL,
 	x1_crest float8 NULL,
-	y1_ener float8 NULL,
 	y1_var float8 NULL,
 	y1_kurt float8 NULL,
 	y1_skew float8 NULL,
 	y1_crest float8 NULL,
-	z1_ener float8 NULL,
 	z1_var float8 NULL,
 	z1_kurt float8 NULL,
 	z1_skew float8 NULL,
 	z1_crest float8 NULL,
-	x2_ener float8 NULL,
 	x2_var float8 NULL,
 	x2_kurt float8 NULL,
 	x2_skew float8 NULL,
 	x2_crest float8 NULL,
-	y2_ener float8 NULL,
 	y2_var float8 NULL,
 	y2_kurt float8 NULL,
 	y2_skew float8 NULL,
 	y2_crest float8 NULL,
-	z2_ener float8 NULL,
 	z2_var float8 NULL,
 	z2_kurt float8 NULL,
 	z2_skew float8 NULL,
 	z2_crest float8 NULL,
-	mic_ener float8 NULL,
 	mic_var float8 NULL,
 	mic_kurt float8 NULL,
 	mic_skew float8 NULL,
@@ -288,7 +281,6 @@ momentos_brutos AS (
         AVG(POWER(valor, 2)) AS m2,
         AVG(POWER(valor, 3)) AS m3,
         AVG(POWER(valor, 4)) AS m4,
-        SUM(POWER(valor, 2)) AS energia,
         MAX(ABS(valor)) AS pico
     FROM sinais
     GROUP BY
@@ -319,7 +311,6 @@ caracteristicas AS (
         fatia,
         canal,
         n,
-        energia,
         mu2 AS variancia,
         SQRT(GREATEST(m2, 0)) AS rms,
 
@@ -347,9 +338,6 @@ SELECT
     condicao_id,
     MAX(n) AS n,
 
-    MAX(energia) FILTER (
-        WHERE canal = 'acel_x1'
-    ) AS acel_x1_energia,
     MAX(variancia) FILTER (
         WHERE canal = 'acel_x1'
     ) AS acel_x1_variancia,
@@ -366,9 +354,6 @@ SELECT
         WHERE canal = 'acel_x1'
     ) AS acel_x1_fator_crista,
 
-    MAX(energia) FILTER (
-        WHERE canal = 'acel_y1'
-    ) AS acel_y1_energia,
     MAX(variancia) FILTER (
         WHERE canal = 'acel_y1'
     ) AS acel_y1_variancia,
@@ -385,9 +370,6 @@ SELECT
         WHERE canal = 'acel_y1'
     ) AS acel_y1_fator_crista,
 
-    MAX(energia) FILTER (
-        WHERE canal = 'acel_z1'
-    ) AS acel_z1_energia,
     MAX(variancia) FILTER (
         WHERE canal = 'acel_z1'
     ) AS acel_z1_variancia,
@@ -404,9 +386,6 @@ SELECT
         WHERE canal = 'acel_z1'
     ) AS acel_z1_fator_crista,
 
-    MAX(energia) FILTER (
-        WHERE canal = 'acel_x2'
-    ) AS acel_x2_energia,
     MAX(variancia) FILTER (
         WHERE canal = 'acel_x2'
     ) AS acel_x2_variancia,
@@ -423,9 +402,6 @@ SELECT
         WHERE canal = 'acel_x2'
     ) AS acel_x2_fator_crista,
 
-    MAX(energia) FILTER (
-        WHERE canal = 'acel_y2'
-    ) AS acel_y2_energia,
     MAX(variancia) FILTER (
         WHERE canal = 'acel_y2'
     ) AS acel_y2_variancia,
@@ -442,9 +418,6 @@ SELECT
         WHERE canal = 'acel_y2'
     ) AS acel_y2_fator_crista,
 
-    MAX(energia) FILTER (
-        WHERE canal = 'acel_z2'
-    ) AS acel_z2_energia,
     MAX(variancia) FILTER (
         WHERE canal = 'acel_z2'
     ) AS acel_z2_variancia,
@@ -461,9 +434,6 @@ SELECT
         WHERE canal = 'acel_z2'
     ) AS acel_z2_fator_crista,
 
-    MAX(energia) FILTER (
-        WHERE canal = 'mic'
-    ) AS mic_energia,
     MAX(variancia) FILTER (
         WHERE canal = 'mic'
     ) AS mic_variancia,
@@ -500,7 +470,6 @@ CREATE TABLE IF NOT EXISTS estatistica_detalhe_wavelet (
     tipo_wavelet_id BIGINT NOT NULL
         REFERENCES tipo_wavelet (id) ON DELETE RESTRICT,
     indice_detalhe INTEGER NOT NULL CHECK (indice_detalhe > 0),
-    energia DOUBLE PRECISION NOT NULL,
     curtose DOUBLE PRECISION NOT NULL,
     obliquidade DOUBLE PRECISION NOT NULL,
     fator_de_cresta DOUBLE PRECISION NOT NULL,
